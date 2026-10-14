@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo — Agente de Atendimento</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+  /* ============================================================
+     CONFIGURAÇÃO — só editar aqui, não precisa mexer no resto
+     ============================================================ */
+  :root {
+    --ink: #123B3D;
+    --ink-light: #2F6F6B;
+    --paper: #FBF7F0;
+    --paper-dim: #F1EAD9;
+    --text-dark: #1C2422;
+    --text-soft: #5B6664;
+    --accent: #E0932E;
+    --accent-dark: #B8721A;
+    --ok: #4F8F6B;
+    --radius: 18px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Manrope', sans-serif;
+    background: transparent;
+    display: flex;
+    justify-content: center;
+    padding: 24px 12px;
+  }
+
+  .telefone {
+    width: 380px;
+    max-width: 100%;
+    background: var(--ink);
+    border-radius: 32px;
+    padding: 10px;
+    box-shadow: 0 24px 60px rgba(18, 59, 61, 0.28);
+  }
+
+  .tela {
+    background: var(--paper-dim);
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 620px;
+  }
+
+  .cabecalho {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 18px 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .cabecalho .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 800;
+    color: #2B1B03;
+    flex-shrink: 0;
+  }
+
+  .cabecalho .info .nome {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.2px;
+  }
+
+  .cabecalho .info .status {
+    font-size: 12px;
+    color: #B9D6D3;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .cabecalho .info .status .ponto {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #6FE0A8;
+  }
+
+  .corpo {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+  }
+
+  .corpo::-webkit-scrollbar { width: 5px; }
+  .corpo::-webkit-scrollbar-thumb { background: #D8CFB8; border-radius: 8px; }
+
+  .bolha {
+    max-width: 82%;
+    padding: 11px 14px;
+    border-radius: var(--radius);
+    font-size: 13.5px;
+    line-height: 1.48;
+    opacity: 0;
+    transform: translateY(6px);
+    animation: entra 0.32s ease forwards;
+  }
+
+  @keyframes entra {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .bolha.bot {
+    align-self: flex-start;
+    background: var(--paper);
+    color: var(--text-dark);
+    border-bottom-left-radius: 5px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+
+  .bolha.user {
+    align-self: flex-end;
+    background: var(--ink-light);
+    color: white;
+    border-bottom-right-radius: 5px;
+  }
+
+  .digitando {
+    align-self: flex-start;
+    display: flex;
+    gap: 4px;
+    padding: 12px 15px;
+    background: var(--paper);
+    border-radius: var(--radius);
+    border-bottom-left-radius: 5px;
+    width: fit-content;
+  }
+
+  .digitando span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #B9B0A0;
+    animation: pulsa 1.1s infinite ease-in-out;
+  }
+  .digitando span:nth-child(2) { animation-delay: 0.15s; }
+  .digitando span:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes pulsa {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+
+  .bolha.bastidor {
+    align-self: flex-start;
+    background: transparent;
+    border: 1.5px dashed #C9BFA4;
+    color: var(--text-soft);
+    font-style: italic;
+    font-size: 12px;
+    padding: 9px 13px;
+  }
+
+  .bolha.resumo {
+    align-self: flex-start;
+    background: white;
+    border: 1.5px solid var(--paper-dim);
+    color: var(--text-dark);
+    padding: 13px 15px;
+    font-size: 13px;
+    line-height: 1.7;
+    border-bottom-left-radius: 5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+
+  .bolha.resumo .resumo-titulo {
+    font-weight: 800;
+    color: var(--ink);
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .opcoes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-self: flex-start;
+    max-width: 88%;
+    opacity: 0;
+    animation: entra 0.32s ease forwards;
+  }
+
+  .opcao-btn {
+    background: white;
+    border: 1.5px solid var(--paper-dim);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .opcao-btn:hover, .opcao-btn:focus-visible {
+    background: var(--ink);
+    color: white;
+    border-color: var(--ink);
+    outline: none;
+  }
+
+  .rodape {
+    padding: 14px 16px;
+    background: var(--paper);
+    border-top: 1px solid var(--paper-dim);
+  }
+
+  .campo-linha {
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    animation: entra 0.3s ease forwards;
+  }
+
+  .campo-linha input {
+    flex: 1;
+    padding: 11px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--paper-dim);
+    font-family: inherit;
+    font-size: 13.5px;
+    outline: none;
+    background: white;
+    color: var(--text-dark);
+  }
+
+  .campo-linha input:focus { border-color: var(--ink-light); }
+
+  .campo-linha button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: var(--ink);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .campo-linha button:hover { background: var(--ink-light); }
+
+  .cta-final {
+    display: block;
+    width: 100%;
+    padding: 13px;
+    border-radius: 14px;
+    border: none;
+    background: var(--accent);
+    color: #2B1B03;
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .cta-final:hover { background: var(--accent-dark); color: white; }
+
+  .aviso-demo {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-soft);
+    padding: 8px 0 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bolha, .opcoes, .campo-linha { animation: none; opacity: 1; transform: none; }
+    .digitando span { animation: none; opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="telefone">
+  <div class="tela">
+    <div class="cabecalho">
+      <div class="avatar" id="avatarInicial">S</div>
+      <div class="info">
+        <div class="nome" id="nomeNegocioHeader">SeuNegócio Atendendo</div>
+        <div class="status"><span class="ponto"></span> online</div>
+      </div>
+    </div>
+    <div class="corpo" id="corpo"></div>
+    <div class="rodape" id="rodape"></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURAÇÃO — edite só esta seção pra reaproveitar em
+   qualquer campanha/nicho, sem tocar no resto do código.
+   ============================================================ */
+const CONFIG = {
+  nomeNegocio: 'SeuNegócio Atendendo',
+  whatsappDestino: '5548988720983', // troque pelo seu número (só dígitos, com DDI+DDD)
+  // Dados fictícios usados nas respostas da demo (servem para qualquer negócio)
+  exemplo: {
+    endereco: 'Rua Exemplo, 123 - Centro',
+    horario: 'de segunda a sábado, das 08h às 18h',
+    pagamentos: 'Pix, cartão e dinheiro',
+    promocao: '🔥 Leve 2, pague 1 em itens selecionados',
+  },
+};
+
+document.getElementById('nomeNegocioHeader').textContent = CONFIG.nomeNegocio;
+document.getElementById('avatarInicial').textContent = CONFIG.nomeNegocio.charAt(0).toUpperCase();
+
+const corpo = document.getElementById('corpo');
+const rodape = document.getElementById('rodape');
+const lead = { nome: '', telefone: '', negocio: '' };
+
+function scrollFim() {
+  corpo.scrollTop = corpo.scrollHeight;
+}
+
+function bolhaBot(texto) {
+  return new Promise(resolve => {
+    const digitando = document.createElement('div');
+    digitando.className = 'digitando';
+    digitando.innerHTML = '<span></span><span></span><span></span>';
+    corpo.appendChild(digitando);
+    scrollFim();
+
+    setTimeout(() => {
+      digitando.remove();
+      const b = document.createElement('div');
+      b.className = 'bolha bot';
+      b.textContent = texto;
+      corpo.appendChild(b);
+      scrollFim();
+      resolve();
+    }, 650 + Math.random() * 350);
+  });
+}
+
+function bolhaBastidor(texto) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const b = document.createElement('div');
+      b.className = 'bolha bastidor';
+      b.textContent = '🔍 ' + texto;
+      corpo.appendChild(b);
+      scrollFim();
+      setTimeout(resolve, 200);
+    }, 300);
+  });
+}
+
+function bolhaResumo(titulo, linhas) {
+  return new Promise(resolve => {
+    const digitando = document.createElement('div');
+    digitando.className = 'digitando';
+    digitando.innerHTML = '<span></span><span></span><span></span>';
+    corpo.appendChild(digitando);
+    scrollFim();
+
+    setTimeout(() => {
+      digitando.remove();
+      const b = document.createElement('div');
+      b.className = 'bolha resumo';
+      const t = document.createElement('span');
+      t.className = 'resumo-titulo';
+      t.textContent = titulo;
+      b.appendChild(t);
+      linhas.forEach(l => {
+        const linha = document.createElement('span');
+        linha.style.display = 'block';
+        linha.textContent = l;
+        b.appendChild(linha);
+      });
+      corpo.appendChild(b);
+      scrollFim();
+      resolve();
+    }, 700);
+  });
+}
+
+function bolhaUser(texto) {
+  const b = document.createElement('div');
+  b.className = 'bolha user';
+  b.textContent = texto;
+  corpo.appendChild(b);
+  scrollFim();
+}
+
+function mostraOpcoes(opcoes, aoEscolher) {
+  return new Promise(resolve => {
+    const wrap = document.createElement('div');
+    wrap.className = 'opcoes';
+    opcoes.forEach(op => {
+      const btn = document.createElement('button');
+      btn.className = 'opcao-btn';
+      btn.textContent = op;
+      btn.onclick = () => {
+        wrap.remove();
+        bolhaUser(op);
+        aoEscolher(op);
+        resolve();
+      };
+      wrap.appendChild(btn);
+    });
+    corpo.appendChild(wrap);
+    scrollFim();
+  });
+}
+
+function mostraCampoTexto(placeholder, aoEnviar) {
+  rodape.innerHTML = '';
+  const linha = document.createElement('div');
+  linha.className = 'campo-linha';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = placeholder;
+  input.autocomplete = 'off';
+  const btn = document.createElement('button');
+  btn.textContent = '➤';
+  btn.setAttribute('aria-label', 'Enviar');
+
+  function enviar() {
+    const valor = input.value.trim();
+    if (!valor) { input.focus(); return; }
+    linha.remove();
+    bolhaUser(valor);
+    aoEnviar(valor);
+  }
+
+  btn.onclick = enviar;
+  input.onkeydown = e => { if (e.key === 'Enter') enviar(); };
+
+  linha.appendChild(input);
+  linha.appendChild(btn);
+  rodape.appendChild(linha);
+  input.focus();
+}
+
+function mostraCtaFinal() {
+  rodape.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.className = 'cta-final';
+  btn.textContent = '📅 Marcar uma conversa rápida';
+  btn.onclick = () => {
+    const msg = `Olá! Testei a demo do agente e quero saber mais.\nNome: ${lead.nome}\nWhatsApp: ${lead.telefone}\nNegócio: ${lead.negocio}`;
+    const url = `https://wa.me/${CONFIG.whatsappDestino}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
+  rodape.appendChild(btn);
+  const aviso = document.createElement('div');
+  aviso.className = 'aviso-demo';
+  aviso.textContent = 'Isto é uma demonstração — nenhum dado real foi agendado.';
+  rodape.appendChild(aviso);
+}
+
+/* ============================================================
+   ROTEIRO DA DEMO — genérico, serve para qualquer negócio.
+   Fluxo: cumprimento → nome → 7 menus → convite final
+   (a partir do nome, o agente sempre trata a pessoa por ele)
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   Helpers — transformam botões e campo de texto em "await"
+   ------------------------------------------------------------ */
+function escolhe(opcoes) {
+  return new Promise(resolve => mostraOpcoes(opcoes, resolve));
+}
+
+function digita(placeholder) {
+  return new Promise(resolve => mostraCampoTexto(placeholder, resolve));
+}
+
+async function perguntaDiaPeriodo(pergunta) {
+  await bolhaBot(pergunta);
+  const escolha = await escolhe(['Tenho preferência', 'Sem preferência']);
+  if (escolha === 'Tenho preferência') {
+    return digita('Ex: terça de manhã');
+  }
+  return 'Sem preferência';
+}
+
+/* ------------------------------------------------------------
+   Os 7 menus — ordem pensada para a jornada de um cliente:
+   conhecer → comprar → agendar → orçar → novidades → ajustar → dúvidas
+   ------------------------------------------------------------ */
+async function roteiroCatalogo() {
+  await bolhaBot(`Claro, ${lead.nome}! O que você quer ver?`);
+  const tipo = await escolhe(['Produtos', 'Serviços', 'Os mais pedidos']);
+  await bolhaResumo(`📋 ${tipo}`, [
+    '⭐ Item mais pedido — a partir de R$ 29,90',
+    '✨ Novidade da semana — a partir de R$ 49,90',
+    '💼 Opção completa — sob consulta',
+  ]);
+  await bolhaBastidor('o agente mostra o catálogo real do seu negócio, com preços e disponibilidade, e acompanha quando você muda algo.');
+}
+
+async function roteiroPedido() {
+  await bolhaBot(`Vamos lá, ${lead.nome}! O que você gostaria de pedir?`);
+  const item = await digita('Ex: 2 unidades do mais pedido');
+  await bolhaBot('Anotado! Será retirada ou entrega?');
+  const entrega = await escolhe(['Retirada no local', 'Entrega']);
+  await bolhaBot('E a forma de pagamento?');
+  const pagamento = await escolhe(['Pix', 'Cartão', 'Dinheiro']);
+  await bolhaResumo('🛒 Pedido recebido', [
+    `🙍 Cliente: ${lead.nome}`,
+    `📦 Pedido: ${item}`,
+    `🚚 ${entrega}`,
+    `💳 ${pagamento}`,
+  ]);
+  await bolhaBastidor('o pedido chega organizado e completo para a equipe — ninguém precisa anotar à mão nem pedir tudo de novo.');
+}
+
+async function roteiroAgendar() {
+  await bolhaBot(`Perfeito, ${lead.nome}! Qual serviço você quer agendar?`);
+  const servico = await digita('Ex: corte, consulta, revisão...');
+  const diaPeriodo = await perguntaDiaPeriodo('Você tem preferência de dia e período, ou tanto faz?');
+  await bolhaResumo('📅 Agendamento solicitado', [
+    `🙍 Cliente: ${lead.nome}`,
+    `🛎️ Serviço: ${servico}`,
+    `🕒 Preferência: ${diaPeriodo}`,
+  ]);
+  await bolhaBastidor('esse card cai direto no painel da equipe, que só precisa confirmar o horário.');
+  await bolhaBot('💡 Um detalhe: 2 dias antes, eu mesmo mando uma mensagem perguntando se continua tudo certo — e outra, 1 dia antes, se precisar.');
+  await bolhaBastidor('isso reduz muito as faltas sem aviso — tudo automático, sem ninguém ligar pra confirmar um por um.');
+}
+
+async function roteiroOrcamento() {
+  await bolhaBot(`Claro, ${lead.nome}! Me conta rapidinho o que você precisa:`);
+  const pedido = await digita('Descreva o que você precisa');
+  await bolhaBot('Entendi! E qual o seu prazo?');
+  const prazo = await escolhe(['Urgente', 'Esta semana', 'Sem pressa']);
+  await bolhaResumo('💬 Orçamento solicitado', [
+    `🙍 Cliente: ${lead.nome}`,
+    `📝 Necessidade: ${pedido}`,
+    `⏱️ Prazo: ${prazo}`,
+  ]);
+  await bolhaBastidor('a equipe recebe o pedido já resumido e responde com valores — sem perguntar tudo de novo.');
+}
+
+async function roteiroPromocoes() {
+  await bolhaBot(`Tenho novidade boa pra você, ${lead.nome}! 🎁`);
+  await bolhaResumo('🎁 Promoção da semana', [
+    CONFIG.exemplo.promocao,
+    'Válida até domingo',
+  ]);
+  await bolhaBot('Quer receber as próximas promoções aqui no WhatsApp?');
+  const resposta = await escolhe(['Quero receber', 'Agora não']);
+  if (resposta === 'Quero receber') {
+    await bolhaBot(`Combinado, ${lead.nome}! Te aviso assim que surgir algo bom. 💚`);
+  } else {
+    await bolhaBot('Sem problema! Fico por aqui quando você precisar.');
+  }
+  await bolhaBastidor('o agente avisa clientes sobre promoções, aniversários e retornos — sem disparo manual e sem planilha.');
+}
+
+async function roteiroAjustar() {
+  await bolhaBot(`Sem problema, ${lead.nome}! O que você precisa fazer?`);
+  const acao = await escolhe(['Reagendar', 'Cancelar']);
+  if (acao === 'Reagendar') {
+    const novo = await perguntaDiaPeriodo('Para qual novo dia e período você quer reagendar, ou tanto faz?');
+    await bolhaResumo('🔄 Reagendamento solicitado', [
+      `🙍 Cliente: ${lead.nome}`,
+      `🕒 Novo dia/período: ${novo}`,
+    ]);
+  } else {
+    const atual = await perguntaDiaPeriodo('Qual o dia e período do atendimento que você quer cancelar?');
+    await bolhaResumo('❌ Cancelamento solicitado', [
+      `🙍 Cliente: ${lead.nome}`,
+      `🕒 Atendimento: ${atual}`,
+    ]);
+  }
+  await bolhaBastidor('o horário liberado volta para a agenda na hora, e o agente chama uma pessoa da equipe quando precisa — sem ligação.');
+}
+
+function respondeDuvida(texto) {
+  const t = texto.toLowerCase();
+  if (t.includes('endere') || t.includes('onde fica') || t.includes('local')) {
+    return `Claro! Nosso endereço é ${CONFIG.exemplo.endereco}.`;
+  }
+  if (t.includes('hor') || t.includes('funciona') || t.includes('abre') || t.includes('fecha')) {
+    return `Atendemos ${CONFIG.exemplo.horario}.`;
+  }
+  if (t.includes('pag') || t.includes('pix') || t.includes('cart') || t.includes('dinheiro')) {
+    return `Aceitamos ${CONFIG.exemplo.pagamentos}.`;
+  }
+  return null;
+}
+
+async function roteiroDuvida() {
+  await bolhaBot('Pode perguntar! Endereço, horário, formas de pagamento...');
+  const texto = await digita('Digite sua dúvida');
+  const resposta = respondeDuvida(texto);
+  if (resposta) {
+    await bolhaBot(resposta);
+    await bolhaBastidor('o agente responde na hora o que já sabe sobre o seu negócio, a qualquer hora do dia.');
+  } else {
+    await bolhaBot(`Boa pergunta, ${lead.nome}! Vou chamar alguém da equipe pra te responder, ok?`);
+    await bolhaBastidor('perguntas fora do que o agente sabe responder com segurança vão direto para uma pessoa da equipe — ninguém fica esperando no vazio.');
+  }
+}
+
+const MENUS = [
+  { rotulo: '🛍️ Ver produtos ou serviços', roteiro: roteiroCatalogo },
+  { rotulo: '🛒 Fazer um pedido',          roteiro: roteiroPedido },
+  { rotulo: '📅 Agendar um horário',       roteiro: roteiroAgendar },
+  { rotulo: '💬 Pedir um orçamento',       roteiro: roteiroOrcamento },
+  { rotulo: '🎁 Promoções e novidades',    roteiro: roteiroPromocoes },
+  { rotulo: '🔄 Reagendar ou cancelar',    roteiro: roteiroAjustar },
+  { rotulo: '❓ Tirar uma dúvida',         roteiro: roteiroDuvida },
+];
+
+const ROTULO_SAIR = '✅ Já vi o suficiente';
+const visitados = new Set();
+
+async function mostraMenu() {
+  const restantes = MENUS.filter(m => !visitados.has(m.rotulo));
+  if (restantes.length === 0) {
+    await encerraRoteiro();
+    return;
+  }
+  const opcoes = restantes.map(m => m.rotulo);
+  if (visitados.size > 0) opcoes.push(ROTULO_SAIR);
+
+  const escolha = await escolhe(opcoes);
+  if (escolha === ROTULO_SAIR) {
+    await encerraRoteiro();
+    return;
+  }
+
+  const menu = MENUS.find(m => m.rotulo === escolha);
+  visitados.add(menu.rotulo);
+  await menu.roteiro();
+
+  if (visitados.size < MENUS.length) {
+    await bolhaBot(`Quer ver mais alguma função, ${lead.nome}?`);
+  }
+  await mostraMenu();
+}
+
+/* ------------------------------------------------------------
+   Fechamento — o nome já é conhecido, então pede só o telefone
+   e o tipo de negócio, e convida para a conversa
+   ------------------------------------------------------------ */
+async function encerraRoteiro() {
+  await bolhaBot(`✨ Isso foi só uma prévia, ${lead.nome}: seus clientes seriam atendidos assim todo dia, 24h, sem fila.`);
+  await bolhaBot('Quer ver isso rodando no seu negócio? Me passa só mais dois dados. Qual o melhor WhatsApp pra te chamar?');
+
+  let telefone = await digita('Seu WhatsApp com DDD');
+  while (telefone.replace(/\D/g, '').length < 10) {
+    await bolhaBot('Não consegui ler o número. Pode conferir se está com DDD?');
+    telefone = await digita('Ex: 48 99999-9999');
+  }
+  lead.telefone = telefone;
+
+  await bolhaBot('E que tipo de negócio você tem?');
+  const tipo = await escolhe([
+    'Comércio local',
+    'Clínica ou consultório',
+    'Loja de varejo',
+    'Pastelaria ou alimentação',
+    'Prestador de serviços',
+    'Outro',
+  ]);
+  if (tipo === 'Outro') {
+    await bolhaBot('Qual é o seu ramo?');
+    lead.negocio = await digita('Seu tipo de negócio');
+  } else {
+    lead.negocio = tipo;
+  }
+
+  await finaliza();
+}
+
+async function finaliza() {
+  await bolhaBot(`Perfeito, ${lead.nome}! Vou te mostrar como isso funcionaria no seu negócio (${lead.negocio}).`);
+  await bolhaBot('Bora marcar uma conversa rápida de 15 minutos? 😊');
+  mostraCtaFinal();
+}
+
+/* ------------------------------------------------------------
+   Início — cumprimenta e pergunta o nome
+   ------------------------------------------------------------ */
+async function iniciar() {
+  await bolhaBot('Olá! 👋 Que bom ter você por aqui.');
+  await bolhaBot('Antes de começar: qual é o seu nome?');
+
+  const bruto = await digita('Seu nome');
+  const primeiro = bruto.trim().split(/\s+/)[0];
+  lead.nome = primeiro.charAt(0).toUpperCase() + primeiro.slice(1);
+
+  await bolhaBot(`Prazer, ${lead.nome}! 😊 Vou te mostrar como eu atenderia os clientes de qualquer negócio.`);
+  await bolhaBot('Escolhe uma opção pra testar:');
+  await mostraMenu();
+}
+
+iniciar();
+</script>
+
+</body>
+</html>
